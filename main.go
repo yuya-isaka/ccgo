@@ -6,19 +6,27 @@ import (
 	"strconv"
 )
 
-var num int = 0
+var textNum int = 0
 var text []string = make([]string, 0)
 
-func goNum(i int) {
-	num += i
+var tokSum int = 0
+var tokNum int = 0
+var token []*Token = make([]*Token, 0)
+
+func goTok(i int) {
+	tokNum += i
+}
+
+func goText(i int) {
+	textNum += i
 }
 
 func checkNum() int {
 	var result int = 0
-	for _, t := range text[num:] {
+	for _, t := range text[textNum:] {
 		if v, err := strconv.Atoi(t); err == nil {
 			result = result*10 + v
-			goNum(1)
+			goText(1)
 		} else {
 			break
 		}
@@ -53,72 +61,76 @@ func (t TokenKind) String() string {
 
 type Token struct {
 	kind TokenKind
-	next *Token
 	val  int
 	loc  int
-	len  int
 	str  string
 }
 
 func newToken(kind TokenKind) *Token {
 	var tok *Token = &Token{} // new(Token)と同じ
 	tok.kind = kind
-	tok.loc = num
+	tok.loc = textNum
 	return tok
 }
 
-func tokenize() *Token {
-	var head Token = Token{}
-	var cur *Token = &head
+func tokenize() []*Token {
+	var result []*Token = make([]*Token, 0)
 
-	for len(text) > num {
-		if text[num] == " " {
-			goNum(1)
+	for len(text) > textNum {
+		if text[textNum] == " " {
+			goText(1)
 			continue
 		}
 
-		if _, err := strconv.Atoi(text[num]); err == nil {
-			cur.next = newToken(TK_NUM)
-			cur = cur.next
+		if _, err := strconv.Atoi(text[textNum]); err == nil {
+			var cur *Token = newToken(TK_NUM)
 			var tmp int = checkNum()
 			cur.val = tmp
+			result = append(result, cur)
+			goTok(1)
 			continue
 		}
 
-		if text[num] == "+" || text[num] == "-" {
-			cur.next = newToken(TK_PUNCT)
-			cur = cur.next
-			cur.str = text[num]
-			goNum(1)
+		if text[textNum] == "+" || text[textNum] == "-" {
+			var cur *Token = newToken(TK_PUNCT)
+			cur.str = text[textNum]
+			goText(1)
+			result = append(result, cur)
+			goTok(1)
 			continue
 		}
 
 		panic("invalid token")
 	}
 
-	cur.next = newToken(TK_EOF)
-	cur = cur.next
+	var cur *Token = newToken(TK_EOF)
+	result = append(result, cur)
+	goTok(1)
 
-	return head.next
+	tokSum = tokNum
+	tokNum = 0
+
+	return result
 }
 
-func getNumber(tok *Token) int {
-	if tok.kind != TK_NUM {
+func getNumber() int {
+	if token[tokNum].kind != TK_NUM {
 		panic("Expected a number")
 	}
-	return tok.val
+	defer goTok(1)
+	return token[tokNum].val
 }
 
-func equal(tok *Token, s string) bool {
-	return tok.str == s
+func equal(s string) bool {
+	return token[tokNum].str == s
 }
 
-func skip(tok *Token, s string) *Token {
-	if !equal(tok, s) {
+func skip(s string) {
+	if !equal(s) {
 		fmt.Fprintf(os.Stdout, "expected %s", s)
 		panic("redo")
 	}
-	return tok.next
+	defer goTok(1)
 }
 
 func main() {
@@ -138,25 +150,23 @@ func main() {
 		text = append(text, string([]rune{a}[0]))
 	}
 
-	var tok *Token = tokenize()
+	token = tokenize()
 
 	fmt.Println("")
 	fmt.Println("  .globl main")
 	fmt.Println("main:")
 
-	fmt.Printf("  mov $%d, %%rax\n", getNumber(tok))
-	tok = tok.next
+	fmt.Printf("  mov $%d, %%rax\n", getNumber())
 
-	for tok.kind != TK_EOF {
-		if equal(tok, "+") {
-			fmt.Printf("  add $%d, %%rax\n", getNumber(tok.next))
-			tok = tok.next.next
+	for token[tokNum].kind != TK_EOF {
+		if equal("+") {
+			goTok(1)
+			fmt.Printf("  add $%d, %%rax\n", getNumber())
 			continue
 		}
 
-		tok = skip(tok, "-")
-		fmt.Printf("  sub $%d, %%rax\n", getNumber(tok))
-		tok = tok.next
+		skip("-")
+		fmt.Printf("  sub $%d, %%rax\n", getNumber())
 	}
 
 	fmt.Println("  ret")
