@@ -66,11 +66,24 @@ type Token struct {
 	str  string
 }
 
+func (t *Token) String() string {
+	return fmt.Sprintf("%s", t.str)
+}
+
 func newToken(kind TokenKind) *Token {
 	var tok *Token = &Token{} // new(Token)と同じ
 	tok.kind = kind
 	tok.loc = textNum
 	return tok
+}
+
+func errorText(s string) {
+	fmt.Println()
+	for i, v := range text {
+		fmt.Printf("%dth: %s\n", i, v)
+	}
+	fmt.Println()
+	panic(fmt.Sprintf("%dth text, %s\n", textNum, s))
 }
 
 func tokenize() []*Token {
@@ -86,6 +99,7 @@ func tokenize() []*Token {
 			var cur *Token = newToken(TK_NUM)
 			var tmp int = checkNum()
 			cur.val = tmp
+			cur.str = strconv.Itoa(tmp)
 			result = append(result, cur)
 			goTok(1)
 			continue
@@ -100,7 +114,7 @@ func tokenize() []*Token {
 			continue
 		}
 
-		panic("invalid token")
+		errorText("invalid text")
 	}
 
 	var cur *Token = newToken(TK_EOF)
@@ -113,9 +127,18 @@ func tokenize() []*Token {
 	return result
 }
 
+func errorToken(expect string) {
+	fmt.Println()
+	for i, v := range token {
+		fmt.Printf("%dth: %s\n", i, v)
+	}
+	fmt.Println()
+	panic(fmt.Sprintf("%dth token, invalid token, expected %s\n", tokNum, expect))
+}
+
 func getNumber() int {
 	if token[tokNum].kind != TK_NUM {
-		panic("Expected a number")
+		errorToken("number")
 	}
 	defer goTok(1)
 	return token[tokNum].val
@@ -127,8 +150,7 @@ func equal(s string) bool {
 
 func skip(s string) {
 	if !equal(s) {
-		fmt.Fprintf(os.Stdout, "expected %s", s)
-		panic("redo")
+		errorToken(s)
 	}
 	defer goTok(1)
 }
