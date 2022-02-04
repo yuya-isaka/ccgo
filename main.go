@@ -278,7 +278,7 @@ func newBinary(kind NodeKind, lhs *Node, rhs *Node) *Node {
 var depth int = 0
 
 func push() {
-	fmt.Println("  push %%rax")
+	fmt.Println("  push %rax")
 	depth++
 }
 
@@ -300,17 +300,17 @@ func genExpr(node *Node) {
 
 	switch node.kind {
 	case ND_ADD:
-		fmt.Println("  add %%rdi, %%rax")
+		fmt.Println("  add %rdi, %rax")
 		return
 	case ND_SUB:
-		fmt.Println("  sub %%rdi, %%rax")
+		fmt.Println("  sub %rdi, %rax")
 		return
 	case ND_MUL:
-		fmt.Println("  imul %%rdi, %%rax")
+		fmt.Println("  imul %rdi, %rax")
 		return
 	case ND_DIV:
 		fmt.Println("  cqo")
-		fmt.Println("  idiv %%rdi")
+		fmt.Println("  idiv %rdi")
 		return
 	}
 
