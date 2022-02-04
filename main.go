@@ -63,7 +63,11 @@ const (
 	ND_MUL                 // *
 	ND_DIV                 // /
 	ND_NUM                 // Integer
-	ND_NEG
+	ND_NEG                 // -
+	ND_EQ                  // ==
+	ND_NE                  // !=
+	ND_LT                  // <
+	ND_LE                  // <=
 )
 
 type Node struct {
@@ -121,11 +125,13 @@ func errorText(s string) {
 	panic(fmt.Sprintf("%dth text, %s\n", textNum, s))
 }
 
-func ispunct(s string) bool {
-	if s == "+" || s == "-" || s == "*" || s == "/" || s == "(" || s == ")" {
-		return true
+func ispunct(s1, s2 string) int {
+	if s1+s2 == "==" || s1+s2 == "!=" || s1+s2 == "<=" || s1+s2 == ">=" {
+		return 2
+	} else if s1 == "+" || s1 == "-" || s1 == "*" || s1 == "/" || s1 == "(" || s1 == ")" || s1 == "<" || s1 == ">" || s1 == "=" {
+		return 1
 	} else {
-		return false
+		return 0
 	}
 }
 
@@ -148,10 +154,13 @@ func tokenize() []*Token {
 			continue
 		}
 
-		if ispunct(text[textNum]) {
+		if flag := ispunct(text[textNum], text[textNum+1]); flag == 1 || flag == 2 {
 			var cur *Token = newToken(TK_PUNCT)
 			cur.str = text[textNum]
-			goText(1)
+			if flag == 2 {
+				cur.str += text[textNum+1]
+			}
+			goText(flag)
 			result = append(result, cur)
 			goTok(1)
 			continue
@@ -213,6 +222,56 @@ func hopeStrGo(s string) {
 }
 
 func expr() *Node {
+	return equality()
+}
+
+func equality() *Node {
+	var node *Node = relational()
+
+	for {
+		if equalStrGo("==") {
+			node = newBinary(ND_EQ, node, relational())
+			continue
+		}
+
+		if equalStrGo("!=") {
+			node = newBinary(ND_NE, node, relational())
+			continue
+		}
+
+		return node
+	}
+}
+
+func relational() *Node {
+	var node *Node = add()
+
+	for {
+		if equalStrGo("<") {
+			node = newBinary(ND_LT, node, add())
+			continue
+		}
+
+		if equalStrGo("<=") {
+			node = newBinary(ND_LE, node, add())
+			continue
+		}
+
+		if equalStrGo(">") {
+			node = newBinary(ND_LT, add(), node)
+			continue
+		}
+
+		if equalStrGo(">=") {
+			node = newBinary(ND_LE, add(), node)
+			continue
+		}
+
+		return node
+	}
+}
+
+func add() *Node {
 	var node *Node = mul()
 
 	for {
@@ -343,6 +402,24 @@ func genExpr(node *Node) {
 	case ND_DIV:
 		fmt.Println("  cqo")
 		fmt.Println("  idiv %rdi")
+		return
+	case ND_EQ:
+	case ND_NE:
+	case ND_LT:
+	case ND_LE:
+		fmt.Println("  cmp %rdi, %rax")
+
+		if node.kind == ND_EQ {
+			fmt.Println("  sete %al")
+		} else if node.kind == ND_NE {
+			fmt.Println("  setne %al")
+		} else if node.kind == ND_LT {
+			fmt.Println("  setl %al")
+		} else if node.kind == ND_LE {
+			fmt.Println("  setle %al")
+		}
+
+		fmt.Println("  movzb %al, %rax")
 		return
 	}
 
