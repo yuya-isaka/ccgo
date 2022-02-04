@@ -125,13 +125,19 @@ func errorText(s string) {
 	panic(fmt.Sprintf("%dth text, %s\n", textNum, s))
 }
 
-func ispunct(s1, s2 string) int {
-	if s1+s2 == "==" || s1+s2 == "!=" || s1+s2 == "<=" || s1+s2 == ">=" {
-		return 2
-	} else if s1 == "+" || s1 == "-" || s1 == "*" || s1 == "/" || s1 == "(" || s1 == ")" || s1 == "<" || s1 == ">" || s1 == "=" {
+func ispunctLast(s1 string) int {
+	if s1 == "+" || s1 == "-" || s1 == "*" || s1 == "/" || s1 == "(" || s1 == ")" || s1 == "<" || s1 == ">" || s1 == "=" {
 		return 1
 	} else {
 		return 0
+	}
+}
+
+func ispunct(s1, s2 string) int {
+	if (s1+s2) == "==" || (s1+s2) == "!=" || (s1+s2) == "<=" || (s1+s2) == ">=" {
+		return 2
+	} else {
+		return ispunctLast(s1)
 	}
 }
 
@@ -154,7 +160,13 @@ func tokenize() []*Token {
 			continue
 		}
 
-		if flag := ispunct(text[textNum], text[textNum+1]); flag == 1 || flag == 2 {
+		var flag int = 0
+		if len(text)-1 > textNum {
+			flag = ispunct(text[textNum], text[textNum+1])
+		} else {
+			flag = ispunctLast(text[textNum])
+		}
+		if flag == 1 || flag == 2 {
 			var cur *Token = newToken(TK_PUNCT)
 			cur.str = text[textNum]
 			if flag == 2 {
