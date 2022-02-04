@@ -415,10 +415,7 @@ func genExpr(node *Node) {
 		fmt.Println("  cqo")
 		fmt.Println("  idiv %rdi")
 		return
-	case ND_EQ:
-	case ND_NE:
-	case ND_LT:
-	case ND_LE:
+	case ND_EQ, ND_NE, ND_LT, ND_LE:
 		fmt.Println("  cmp %rdi, %rax")
 
 		if node.kind == ND_EQ {
