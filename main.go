@@ -187,12 +187,25 @@ func getNumber() int {
 	return token[tokNum].val
 }
 
-func equal(s string) bool {
+func equalStr(s string) bool {
 	return token[tokNum].str == s
 }
 
-func skip(s string) {
-	if !equal(s) {
+func equalKind(t TokenKind) bool {
+	return token[tokNum].kind == t
+}
+
+func equalStrGo(s string) bool {
+	if token[tokNum].str == s {
+		goTok(1)
+		return true
+	} else {
+		return false
+	}
+}
+
+func hopeStrGo(s string) {
+	if !equalStr(s) {
 		errorToken(s)
 	}
 	defer goTok(1)
@@ -202,14 +215,12 @@ func expr() *Node {
 	var node *Node = mul()
 
 	for {
-		if equal("+") {
-			goTok(1)
+		if equalStrGo("+") {
 			node = newBinary(ND_ADD, node, mul())
 			continue
 		}
 
-		if equal("-") {
-			goTok(1)
+		if equalStrGo("-") {
 			node = newBinary(ND_SUB, node, mul())
 			continue
 		}
@@ -222,14 +233,12 @@ func mul() *Node {
 	var node *Node = primary()
 
 	for {
-		if equal("*") {
-			goTok(1)
+		if equalStrGo("*") {
 			node = newBinary(ND_MUL, node, primary())
 			continue
 		}
 
-		if equal("/") {
-			goTok(1)
+		if equalStrGo("/") {
 			node = newBinary(ND_DIV, node, primary())
 			continue
 		}
@@ -239,16 +248,15 @@ func mul() *Node {
 }
 
 func primary() *Node {
-	if equal("(") {
-		goTok(1)
+	if equalStrGo("(") {
 		var node *Node = expr()
-		skip(")")
+		hopeStrGo(")")
 		return node
 	}
 
-	if token[tokNum].kind == TK_NUM {
+	if equalKind(TK_NUM) {
 		var node *Node = newNum(token[tokNum].val)
-		goTok(1)
+		defer goTok(1)
 		return node
 	}
 
