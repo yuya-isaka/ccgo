@@ -63,6 +63,7 @@ const (
 	ND_MUL                 // *
 	ND_DIV                 // /
 	ND_NUM                 // Integer
+	ND_NEG
 )
 
 type Node struct {
@@ -230,21 +231,33 @@ func expr() *Node {
 }
 
 func mul() *Node {
-	var node *Node = primary()
+	var node *Node = unary()
 
 	for {
 		if equalStrGo("*") {
-			node = newBinary(ND_MUL, node, primary())
+			node = newBinary(ND_MUL, node, unary())
 			continue
 		}
 
 		if equalStrGo("/") {
-			node = newBinary(ND_DIV, node, primary())
+			node = newBinary(ND_DIV, node, unary())
 			continue
 		}
 
 		return node
 	}
+}
+
+func unary() *Node {
+	if equalStrGo("+") {
+		return unary()
+	}
+
+	if equalStrGo("-") {
+		return newUnary(ND_NEG, unary())
+	}
+
+	return primary()
 }
 
 func primary() *Node {
@@ -283,6 +296,12 @@ func newBinary(kind NodeKind, lhs *Node, rhs *Node) *Node {
 	return node
 }
 
+func newUnary(kind NodeKind, expr *Node) *Node {
+	var node *Node = newNode(kind)
+	node.lhs = expr
+	return node
+}
+
 var depth int = 0
 
 func push() {
@@ -296,8 +315,13 @@ func pop(s string) {
 }
 
 func genExpr(node *Node) {
-	if node.kind == ND_NUM {
+	switch node.kind {
+	case ND_NUM:
 		fmt.Printf("  mov $%d, %%rax\n", node.val)
+		return
+	case ND_NEG:
+		genExpr((node.lhs))
+		fmt.Println("  neg %rax")
 		return
 	}
 
