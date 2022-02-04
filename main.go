@@ -42,10 +42,6 @@ const (
 	TK_EOF
 )
 
-// 	type Stringer inerface {
-//		String() string
-//	}
-// String()関数を持っているとStringerインターフェースに分類される
 func (t TokenKind) String() string {
 	switch t {
 	case TK_PUNCT:
@@ -54,6 +50,44 @@ func (t TokenKind) String() string {
 		return "TK_NUM"
 	case TK_EOF:
 		return "TK_EOF"
+	default:
+		return "Unknown"
+	}
+}
+
+type NodeKind int
+
+const (
+	ND_ADD NodeKind = iota // +
+	ND_SUB                 // -
+	ND_MUL                 // *
+	ND_DIV                 // /
+	ND_NUM                 // Integer
+)
+
+type Node struct {
+	kind NodeKind
+	lhs  *Node
+	rhs  *Node
+	val  int
+}
+
+// 	type Stringer inerface {
+//		String() string
+//	}
+// String()関数を持っているとStringerインターフェースに分類される
+func (t NodeKind) String() string {
+	switch t {
+	case ND_ADD:
+		return "ND_ADD"
+	case ND_SUB:
+		return "ND_SUB"
+	case ND_MUL:
+		return "ND_MUL"
+	case ND_DIV:
+		return "ND_DIV"
+	case ND_NUM:
+		return "ND_NUM"
 	default:
 		return "Unknown"
 	}
@@ -86,6 +120,14 @@ func errorText(s string) {
 	panic(fmt.Sprintf("%dth text, %s\n", textNum, s))
 }
 
+func ispunct(s string) bool {
+	if s == "+" || s == "-" || s == "*" || s == "/" || s == "(" || s == ")" {
+		return true
+	} else {
+		return false
+	}
+}
+
 func tokenize() []*Token {
 	var result []*Token = make([]*Token, 0)
 
@@ -105,7 +147,7 @@ func tokenize() []*Token {
 			continue
 		}
 
-		if text[textNum] == "+" || text[textNum] == "-" {
+		if ispunct(text[textNum]) {
 			var cur *Token = newToken(TK_PUNCT)
 			cur.str = text[textNum]
 			goText(1)
@@ -118,6 +160,7 @@ func tokenize() []*Token {
 	}
 
 	var cur *Token = newToken(TK_EOF)
+	cur.str = "EOF"
 	result = append(result, cur)
 	goTok(1)
 
@@ -155,6 +198,125 @@ func skip(s string) {
 	defer goTok(1)
 }
 
+func expr() *Node {
+	var node *Node = mul()
+
+	for {
+		if equal("+") {
+			goTok(1)
+			node = newBinary(ND_ADD, node, mul())
+			continue
+		}
+
+		if equal("-") {
+			goTok(1)
+			node = newBinary(ND_SUB, node, mul())
+			continue
+		}
+
+		return node
+	}
+}
+
+func mul() *Node {
+	var node *Node = primary()
+
+	for {
+		if equal("*") {
+			goTok(1)
+			node = newBinary(ND_MUL, node, primary())
+			continue
+		}
+
+		if equal("/") {
+			goTok(1)
+			node = newBinary(ND_DIV, node, primary())
+			continue
+		}
+
+		return node
+	}
+}
+
+func primary() *Node {
+	if equal("(") {
+		goTok(1)
+		var node *Node = expr()
+		skip(")")
+		return node
+	}
+
+	if token[tokNum].kind == TK_NUM {
+		var node *Node = newNum(token[tokNum].val)
+		goTok(1)
+		return node
+	}
+
+	errorToken("expected an expression")
+	return newNode(ND_NUM) // ここは実行されないはず
+}
+
+func newNode(kind NodeKind) *Node {
+	var node *Node = &Node{}
+	node.kind = kind
+	return node
+}
+
+func newNum(val int) *Node {
+	var node *Node = newNode(ND_NUM)
+	node.val = val
+	return node
+}
+
+func newBinary(kind NodeKind, lhs *Node, rhs *Node) *Node {
+	var node *Node = newNode(kind)
+	node.lhs = lhs
+	node.rhs = rhs
+	return node
+}
+
+var depth int = 0
+
+func push() {
+	fmt.Println("  push %%rax")
+	depth++
+}
+
+func pop(s string) {
+	fmt.Printf("  pop %s\n", s)
+	depth--
+}
+
+func genExpr(node *Node) {
+	if node.kind == ND_NUM {
+		fmt.Printf("  mov $%d, %%rax\n", node.val)
+		return
+	}
+
+	genExpr(node.rhs)
+	push()
+	genExpr(node.lhs)
+	pop("%rdi")
+
+	switch node.kind {
+	case ND_ADD:
+		fmt.Println("  add %%rdi, %%rax")
+		return
+	case ND_SUB:
+		fmt.Println("  sub %%rdi, %%rax")
+		return
+	case ND_MUL:
+		fmt.Println("  imul %%rdi, %%rax")
+		return
+	case ND_DIV:
+		fmt.Println("  cqo")
+		fmt.Println("  idiv %%rdi")
+		return
+	}
+
+	panic("invalid expression")
+}
+
 func main() {
 	// a := "あ"
 	// "あ" -> 3042 ... 文字コードの規格Unicodeで決められたcode point
@@ -173,24 +335,22 @@ func main() {
 	}
 
 	token = tokenize()
+	var node *Node = expr()
+
+	if token[tokNum].kind != TK_EOF {
+		errorToken("extra token")
+	}
 
 	fmt.Println("")
 	fmt.Println("  .globl main")
 	fmt.Println("main:")
 
-	fmt.Printf("  mov $%d, %%rax\n", getNumber())
-
-	for token[tokNum].kind != TK_EOF {
-		if equal("+") {
-			goTok(1)
-			fmt.Printf("  add $%d, %%rax\n", getNumber())
-			continue
-		}
-
-		skip("-")
-		fmt.Printf("  sub $%d, %%rax\n", getNumber())
-	}
+	genExpr(node)
 
 	fmt.Println("  ret")
 	fmt.Println("")
+
+	if depth != 0 {
+		panic("wrong")
+	}
 }
