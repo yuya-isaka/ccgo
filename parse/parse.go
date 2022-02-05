@@ -8,7 +8,7 @@ func equalStr(s string) bool {
 	return h.Tok[h.TokNum].Str == s
 }
 
-func equalKind(tk h.TokenKind) bool {
+func EqualKind(tk h.TokenKind) bool {
 	return h.Tok[h.TokNum].Kind == tk
 }
 

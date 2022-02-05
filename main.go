@@ -30,7 +30,7 @@ func main() {
 	h.Tok = t.Tokenize()
 	var node *h.Node = p.Expr()
 
-	if h.Tok[h.TokNum].Kind != h.TK_EOF {
+	if !p.EqualKind(h.TK_EOF) {
 		h.ErrorToken("extra token")
 	}
 
