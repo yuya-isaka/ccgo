@@ -16,20 +16,20 @@ func pop(s string) {
 	h.Depth--
 }
 
-func GenExpr(node *h.Node) {
+func genExpr(node *h.Node) {
 	switch node.Kind {
 	case h.ND_NUM:
 		fmt.Printf("  mov $%d, %%rax\n", node.Val)
 		return
 	case h.ND_NEG:
-		GenExpr((node.Lhs))
+		genExpr((node.Lhs))
 		fmt.Println("  neg %rax")
 		return
 	}
 
-	GenExpr(node.Rhs)
+	genExpr(node.Rhs)
 	push()
-	GenExpr(node.Lhs)
+	genExpr(node.Lhs)
 	pop("%rdi")
 
 	switch node.Kind {
@@ -64,4 +64,29 @@ func GenExpr(node *h.Node) {
 	}
 
 	panic("invalid expression")
+}
+
+func genStmt(node *h.Node) {
+	if node.Kind == h.ND_EXPR_STMT {
+		genExpr(node.Lhs)
+		return
+	}
+
+	panic("invalid statement")
+}
+
+func Codegen() {
+	fmt.Println("")
+	fmt.Println("  .globl main")
+	fmt.Println("main:")
+
+	for _, n := range h.Program {
+		genStmt(n)
+		if h.Depth != 0 {
+			panic("wrong")
+		}
+	}
+
+	fmt.Println("  ret")
+	fmt.Println("")
 }

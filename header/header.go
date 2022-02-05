@@ -10,12 +10,15 @@ var TokNum int = 0
 var Tok []*Token = make([]*Token, 0)
 var Depth int = 0
 
+var Program []*Node = make([]*Node, 0)
+
 type TokenKind int
 
 const (
 	TK_PUNCT TokenKind = iota
 	TK_NUM
 	TK_EOF
+	TK_RESERVED // 変数
 )
 
 func (t TokenKind) String() string {
@@ -39,22 +42,23 @@ type Token struct {
 }
 
 func (t *Token) String() string {
-	return fmt.Sprintf("%s", t.Str)
+	return t.Str
 }
 
 type NodeKind int
 
 const (
-	ND_ADD NodeKind = iota // +
-	ND_SUB                 // -
-	ND_MUL                 // *
-	ND_DIV                 // /
-	ND_NUM                 // Integer
-	ND_NEG                 // -
-	ND_EQ                  // ==
-	ND_NE                  // !=
-	ND_LT                  // <
-	ND_LE                  // <=
+	ND_ADD       NodeKind = iota // +
+	ND_SUB                       // -
+	ND_MUL                       // *
+	ND_DIV                       // /
+	ND_NUM                       // Integer
+	ND_NEG                       // -
+	ND_EQ                        // ==
+	ND_NE                        // !=
+	ND_LT                        // <
+	ND_LE                        // <=
+	ND_EXPR_STMT                 // ;
 )
 
 // 	type Stringer inerface {
@@ -98,10 +102,10 @@ func GoTok(i int) {
 	TokNum += i
 }
 
-func getNumber() int {
-	if Tok[TokNum].Kind != TK_NUM {
-		ErrorToken("number")
-	}
-	defer GoTok(1)
-	return Tok[TokNum].Val
-}
+// func getNumber() int {
+// 	if Tok[TokNum].Kind != TK_NUM {
+// 		ErrorToken("number")
+// 	}
+// 	defer GoTok(1)
+// 	return Tok[TokNum].Val
+// }
