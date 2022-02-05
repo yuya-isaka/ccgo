@@ -158,7 +158,7 @@ func primary() *h.Node {
 		return node
 	}
 
-	if equalKind(h.TK_NUM) {
+	if EqualKind(h.TK_NUM) {
 		var node *h.Node = newNum(h.Tok[h.TokNum].Val)
 		defer h.GoTok(1)
 		return node
