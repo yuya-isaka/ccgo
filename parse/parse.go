@@ -24,7 +24,7 @@ func equalStr(s string) bool {
 	return h.Tok[h.TokNum].Str == s
 }
 
-func EqualKind(tk h.TokenKind) bool {
+func equalKind(tk h.TokenKind) bool {
 	return h.Tok[h.TokNum].Kind == tk
 }
 
@@ -69,11 +69,21 @@ func newUnary(kind h.NodeKind, expr *h.Node) *h.Node {
 	return node
 }
 
-func Expr() *h.Node {
-	return equality()
+func Parse() []*h.Node {
+	var result []*h.Node = make([]*h.Node, 0)
+	for !equalKind(h.TK_EOF) {
+		result = append(result, stmt())
+	}
+	return result
 }
 
-func equality() *h.Node {
+func stmt() *h.Node {
+	var node *h.Node = newUnary(h.ND_EXPR_STMT, expr())
+	hopeStrGo(";")
+	return node
+}
+
+func expr() *h.Node {
 	var node *h.Node = relational()
 
 	for {
@@ -169,12 +179,12 @@ func unary() *h.Node {
 
 func primary() *h.Node {
 	if equalStrGo("(") {
-		var node *h.Node = Expr()
+		var node *h.Node = expr()
 		hopeStrGo(")")
 		return node
 	}
 
-	if EqualKind(h.TK_NUM) {
+	if equalKind(h.TK_NUM) {
 		var node *h.Node = newNum(h.Tok[h.TokNum].Val)
 		defer h.GoTok(1)
 		return node

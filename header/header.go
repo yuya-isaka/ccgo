@@ -10,6 +10,8 @@ var TokNum int = 0
 var Tok []*Token = make([]*Token, 0)
 var Depth int = 0
 
+var Program []*Node = make([]*Node, 0)
+
 type TokenKind int
 
 const (

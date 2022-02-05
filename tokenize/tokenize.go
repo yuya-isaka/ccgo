@@ -41,7 +41,7 @@ func errorText(s string) {
 }
 
 func ispunctLast(s1 string) int {
-	if s1 == "+" || s1 == "-" || s1 == "*" || s1 == "/" || s1 == "(" || s1 == ")" || s1 == "<" || s1 == ">" || s1 == "=" {
+	if s1 == "+" || s1 == "-" || s1 == "*" || s1 == "/" || s1 == "(" || s1 == ")" || s1 == "<" || s1 == ">" || s1 == "=" || s1 == ";" {
 		return 1
 	} else {
 		return 0
