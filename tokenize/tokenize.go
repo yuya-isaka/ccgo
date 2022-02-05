@@ -56,6 +56,22 @@ func ispunct(s1, s2 string) int {
 	}
 }
 
+func isAlphabet(s string) bool {
+	var result bool = false
+	var lowerA rune = rune('a')
+	var lowerZ rune = rune('z')
+	for _, v := range s {
+		if lowerA <= v && v <= lowerZ {
+			result = true
+			break
+		} else {
+			result = false
+			break
+		}
+	}
+	return result
+}
+
 func Tokenize() []*h.Token {
 	var result []*h.Token = make([]*h.Token, 0)
 
@@ -90,6 +106,19 @@ func Tokenize() []*h.Token {
 			goText(flag)
 			result = append(result, cur)
 			h.GoTok(1)
+			continue
+		}
+
+		if isAlphabet(h.Text[h.TextNum]) {
+			// ローカル変数として保存
+			var cur *h.Token = newToken(h.TK_RESERVED)
+			cur.Str = h.Text[h.TextNum]
+			goText(1)
+
+			// トークン列更新
+			result = append(result, cur)
+			h.GoTok(1)
+
 			continue
 		}
 
