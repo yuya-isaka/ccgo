@@ -56,6 +56,12 @@ func newNum(val int) *h.Node {
 	return node
 }
 
+func newIdent(name string) *h.Node {
+	var node *h.Node = newNode(h.ND_VAR)
+	node.Name = name
+	return node
+}
+
 func newBinary(kind h.NodeKind, lhs *h.Node, rhs *h.Node) *h.Node {
 	var node *h.Node = newNode(kind)
 	node.Lhs = lhs
@@ -78,8 +84,19 @@ func Parse() []*h.Node {
 }
 
 func stmt() *h.Node {
-	var node *h.Node = newUnary(h.ND_EXPR_STMT, expr())
+	var node *h.Node = newUnary(h.ND_EXPR_STMT, assign())
 	hopeStrGo(";")
+	return node
+}
+
+func assign() *h.Node {
+	var node *h.Node = expr()
+
+	if equalStrGo("=") {
+		// assignの後にassignが来てもいい
+		node = newBinary(h.ND_ASSIGN, node, assign())
+	}
+
 	return node
 }
 
@@ -186,6 +203,12 @@ func primary() *h.Node {
 
 	if equalKind(h.TK_NUM) {
 		var node *h.Node = newNum(h.Tok[h.TokNum].Val)
+		defer h.GoTok(1)
+		return node
+	}
+
+	if equalKind(h.TK_IDENT) {
+		var node *h.Node = newIdent(h.Tok[h.TokNum].Str)
 		defer h.GoTok(1)
 		return node
 	}

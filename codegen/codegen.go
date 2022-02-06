@@ -16,14 +16,48 @@ func pop(s string) {
 	h.Depth--
 }
 
+func genOffset(s string) int {
+	var result int = 0
+	var lowerA rune = rune('a')
+	for _, v := range s {
+		result = int((v - lowerA + 1) * 8)
+		break
+	}
+	return result
+}
+
+// %raxにアドレスをセット
+func genAddr(node *h.Node) {
+	if node.Kind == h.ND_VAR {
+		var offset int = genOffset(node.Name)
+		fmt.Printf("  lea %d(%%rbp), %%rax\n", -offset)
+		return
+	}
+
+	panic("not a lvalue")
+}
+
 func genExpr(node *h.Node) {
 	switch node.Kind {
 	case h.ND_NUM:
 		fmt.Printf("  mov $%d, %%rax\n", node.Val)
 		return
 	case h.ND_NEG:
-		genExpr((node.Lhs))
+		genExpr(node.Lhs)
 		fmt.Println("  neg %rax")
+		return
+	case h.ND_VAR:
+		// メモリにアクセス
+		genAddr(node)
+		fmt.Println("  mov (%rax), %rax")
+		return
+	case h.ND_ASSIGN:
+		// メモリに格納
+		genAddr(node.Lhs)
+		push()
+		genExpr(node.Rhs)
+		pop("%rdi")
+		fmt.Println("  mov %rax, (%rdi)")
 		return
 	}
 
@@ -75,10 +109,36 @@ func genStmt(node *h.Node) {
 	panic("invalid statement")
 }
 
+// RBPは現在実行している関数のアドレス（このアドレスの中身は前の関数のアドレス，ポップしたら出てくる）
+// RSPはスタックのトップ（こいつに注意）
+
+func prologue() {
+	// Prologue (それぞれの関数の冒頭)
+	// 関数レコード作成用
+	// スタックに今の関数のRBP追加
+	fmt.Println("  push %rbp")
+	// RSP(今の関数のRBPを指す)の値でRBP更新
+	fmt.Println("  mov %rsp, %rbp")
+	// RSPから208引いてローカル変数のスタック確保（rspは最後の方をさす）
+	fmt.Println("  sub $208, %rsp")
+	// 208 == ('z' - 'a' + 1) * 8 ... 64ビット整数,変数26文字のアルファベット用のスタックサイズ
+}
+
+func epilogue() {
+	// Epilogue
+	// 今のRBPの位置にRSPを戻す（確保したローカル変数はここで解放される）
+	fmt.Println("  mov %rbp, %rsp")
+	// RBPを呼び出し元の関数のRBPに戻す
+	fmt.Println("  pop %rbp")
+}
+
 func Codegen() {
 	fmt.Println("")
 	fmt.Println("  .globl main")
 	fmt.Println("main:")
+
+	// それぞれの関数の冒頭
+	prologue()
 
 	for _, n := range h.Program {
 		genStmt(n)
@@ -86,6 +146,8 @@ func Codegen() {
 			panic("wrong")
 		}
 	}
+
+	epilogue()
 
 	fmt.Println("  ret")
 	fmt.Println("")
