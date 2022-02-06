@@ -8,6 +8,7 @@ var Text []string = make([]string, 0)
 var TokSum int = 0
 var TokNum int = 0
 var Tok []*Token = make([]*Token, 0)
+
 var Depth int = 0
 
 var Program []*Node = make([]*Node, 0)
@@ -18,7 +19,7 @@ const (
 	TK_PUNCT TokenKind = iota
 	TK_NUM
 	TK_EOF
-	TK_RESERVED // 変数
+	TK_IDENT // 変数
 )
 
 func (t TokenKind) String() string {
@@ -29,6 +30,8 @@ func (t TokenKind) String() string {
 		return "TK_NUM"
 	case TK_EOF:
 		return "TK_EOF"
+	case TK_IDENT:
+		return "TK_IDENT"
 	default:
 		return "Unknown"
 	}
@@ -59,6 +62,8 @@ const (
 	ND_LT                        // <
 	ND_LE                        // <=
 	ND_EXPR_STMT                 // ;
+	ND_ASSIGN                    // =
+	ND_VAR                       // Variable
 )
 
 // 	type Stringer inerface {
@@ -86,7 +91,8 @@ type Node struct {
 	Kind NodeKind
 	Lhs  *Node
 	Rhs  *Node
-	Val  int
+	Val  int    // if Kind == ND_NUM
+	Name string // if Kind == ND_VAR
 }
 
 func ErrorToken(expect string) {

@@ -3,14 +3,9 @@ package main
 import "fmt"
 
 func test() {
-	a := []rune("a")
+	a := "b"
 	var lowerA rune = rune('a')
-	for _, j := range a {
-		if lowerA == j {
-			fmt.Println("Yes")
-		} else {
-			fmt.Println("No")
-		}
+	for _, v := range a {
+		fmt.Println((v - lowerA + 1) * 8)
 	}
-
 }

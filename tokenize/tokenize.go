@@ -111,7 +111,7 @@ func Tokenize() []*h.Token {
 
 		if isAlphabet(h.Text[h.TextNum]) {
 			// ローカル変数として保存
-			var cur *h.Token = newToken(h.TK_RESERVED)
+			var cur *h.Token = newToken(h.TK_IDENT)
 			cur.Str = h.Text[h.TextNum]
 			goText(1)
 
